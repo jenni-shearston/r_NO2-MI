@@ -9,14 +9,14 @@
 
 # N: Notes
 # 0: Preparation 
-# 1: 
+# 1: Sup Fig 1 - NO2 Time Series by City
 
 
 ####**************
 #### N: Notes #### 
 ####**************
 
-# In this script,  
+# In this script, we create non-model-related supplemental figures. 
 
 
 ####********************
@@ -30,7 +30,7 @@ project.folder <- paste0(print(here::here()),'/')
 source(paste0(project.folder, 'Scripts/', 'packages.R'))
 
 # 0c Set up filepath(s)
-data_path <- paste0(print(here::here('Data', 'Intermediate_Data')),'/')
+data_path <- '/Users/jennishearston/Dropbox/Columbia/Research/NO2_MI/Data/Intermediate_Data/'
 data_path_external <- '/Users/jennishearston/Desktop/SPARCCS_MI/'
 output_path <- paste0(print(here::here('Outputs')),'/')
 

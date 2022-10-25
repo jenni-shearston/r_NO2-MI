@@ -48,6 +48,9 @@ email = aqs_email
 #    Note: Set your own AQS password here
 key = aqs_key
 
+# 0f Set data folder location
+data_path = '/Users/jennishearston/Dropbox/Columbia/Research/NO2_MI/Data'
+
 ####***************************
 #### 1: Enter Monitor Info #### 
 ####***************************
@@ -242,7 +245,7 @@ monitors2 <- monitors2 %>%
 # 7a Save out data as csv
 # note: large df, may take some time to save
 # do not use write.csv or write_csv - not fast enough
-fwrite(monitors2, "./Data/Intermediate_Data/no2.csv")
+fwrite(monitors2, paste0(data_path, "/Intermediate_Data/no2.csv"))
 
 # 7b Clean environment
 rm(monitors, monitors2, email, key, x, pull_NO2)

@@ -53,7 +53,7 @@ project.folder <- paste0(print(here::here()),'/')
 source(paste0(project.folder, 'Scripts/', 'packages.R'))
 
 # 0c Set up filepath(s)
-data_path <- paste0(print(here::here('Data', 'Intermediate_Data')),'/')
+data_path <- '/Users/jennishearston/Dropbox/Columbia/Research/NO2_MI/Data/Intermediate_Data/'
 
 # 0d Load zcta to zip code crosswalk
 #    Source: https://udsmapper.org/zip-code-to-zcta-crosswalk/

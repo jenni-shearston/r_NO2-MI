@@ -9,7 +9,9 @@
 
 # N: Notes
 # 0: Preparation 
-# 1: 
+# 1: Aggregate weather by city
+# 2: Aggregate weather by zip code
+# 3: Descriptive statistics / plots
 
 
 ####***********
@@ -37,7 +39,7 @@ project.folder <- paste0(print(here::here()),'/')
 source(paste0(project.folder, 'Scripts/', 'packages.R'))
 
 # 0c Set up filepath(s)
-data_path <- paste0(print(here::here('Data', 'Intermediate_Data')),'/')
+data_path <- '/Users/jennishearston/Dropbox/Columbia/Research/NO2_MI/Data/Intermediate_Data/'
 weather_path <- paste0(data_path, 'weather/')
 
 # 0d Load data

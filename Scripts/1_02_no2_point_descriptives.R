@@ -32,7 +32,7 @@ project.folder <- paste0(print(here::here()),'/')
 source(paste0(project.folder, 'Scripts/', 'packages.R'))
 
 # 0c Load Data
-no2_path <- paste0(print(here::here('Data', 'Intermediate_Data')),'/')
+no2_path <- '/Users/jennishearston/Dropbox/Columbia/Research/NO2_MI/Data/Intermediate_Data/'
 no2 <- fread(paste0(no2_path, 'no2.csv'))
 
 # 0d Get a Feel for the Data
