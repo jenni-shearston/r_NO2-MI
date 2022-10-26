@@ -339,21 +339,3 @@ dev.off()
 
 
 
-
-
-
-# 4c Sensitivity analysis: no rh
-table_plot(cumul_sens_NoRH, "Cumul", "NoRH", 'S2.3')
-table_plot(ind_sens_NoRH, "Ind", "NoRH", 'S2.1_S2.2')
-
-# 4d Sensitivity analysis: zip codes
-table_plot(cumul_sens_zip, "Cumul", "Zips", 'S3.3')
-table_plot(ind_sens_zip, "Ind", "Zips", 'S3.1_S3.2')
-
-# 4e Sensitivity analysis:  MI in the first diagnostic position only
-table_plot(cumul_sens_DXA410X1, "Cumul", "DXA410X1", 'S4.3')
-table_plot(ind_sens_DXA410X1, "Ind", "DXA410X1", 'S4.1_S4.2')
-
-# 4f Sensitivity analysis: 48 Lags
-table_plot(cumul_sens_48Lags, "Cumul", "48Lags", 'S5.3')
-table_plot(ind_sens_48Lags, "Ind", "48Lags", 'S5.1_S5.2')

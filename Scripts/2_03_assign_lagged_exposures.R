@@ -168,8 +168,8 @@ for(l in 0:(maxLag-1)){
 
 # 3a Save city datasets
 data4casecross_city %>% write_fst(paste0(data_path_external, 'data4casecross_city_allhours.fst'))
-data4casecross_city_5per %>% write_fst(paste0(data_path_external, 'data4casecross_city_5per.fst'))
-data4casecross_city_25per %>% write_fst(paste0(data_path_external, 'data4casecross_city_25per.fst'))
+#data4casecross_city_5per %>% write_fst(paste0(data_path_external, 'data4casecross_city_5per.fst'))
+#data4casecross_city_25per %>% write_fst(paste0(data_path_external, 'data4casecross_city_25per.fst'))
 
 # 3b Save 48 hour lag dataset
 data4casecross_city_48Lags %>% write_fst(paste0(data_path_external, 'data4casecross_city_48Lags.fst'))
