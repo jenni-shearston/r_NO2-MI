@@ -164,7 +164,7 @@ table_plot <- function(dataset, CumulInd, Analysis, FigNum){
       geom_line(alpha = .9, color = "#800000FF", size = 1) +
       geom_ribbon(aes(ymin = lci, ymax = uci), alpha = .5, fill = "gray75") +         
       geom_hline(yintercept = 1, color = "black", linetype = "dashed") + 
-      ylab('Rate Ratio of MI Hospitalization') + xlab('Hourly Lag') +
+      ylab('MI Rate Ratio') + xlab('Hourly Lag') +
       scale_y_continuous(breaks = seq(0.995, 1.025, by = 0.005)) +
       theme_bw() +
       theme(text = element_text(size = 16))
@@ -190,7 +190,7 @@ table_plot <- function(dataset, CumulInd, Analysis, FigNum){
       geom_line(alpha = .9, color = "#800000FF", size = 1) +
       geom_ribbon(aes(ymin = lci, ymax = uci), alpha = .5, fill = "gray75") + 
       geom_hline(yintercept = 1, color = "black", linetype = "dashed") + 
-      ylab('Rate Ratio of MI Hospitalization') + xlab('Hourly Lag') +
+      ylab('MI Rate Ratio') + xlab('Hourly Lag') +
       scale_y_continuous(limits = c(0.995, 1.008),
                          breaks = seq(1, 1.02, by = 0.005)) +
       theme_bw() +
@@ -214,7 +214,7 @@ table_plot <- function(dataset, CumulInd, Analysis, FigNum){
       scale_fill_manual(values = wes_palette(n = 3, name = 'BottleRocket2')) +
       scale_color_manual(values = wes_palette(n = 3, name = 'BottleRocket2')) +
       geom_hline(yintercept = 1, color = "black", linetype = "dashed") + 
-      labs(y = 'Rate Ratio of MI Hospitalization', x = expression(NO[2]~Concentration~(ppb))) +
+      labs(y = 'MI Rate Ratio', x = expression(NO[2]~Concentration~(ppb))) +
       scale_y_continuous(breaks = seq(0.985, 1.025, by = 0.005)) +
       theme_bw()+
       theme(text = element_text(size = 16))
@@ -289,7 +289,7 @@ nyc_expRespLags_cumul <- nyc_expRespLags_cumul %>%
   geom_line(alpha = .9, color = "#800000FF", size = 1) +
   geom_ribbon(aes(ymin = lci, ymax = uci), alpha = .5, fill = "gray75") +         
   geom_hline(yintercept = 1, color = "black", linetype = "dashed") + 
-  ylab('Rate Ratio of MI Hospitalization') + xlab('Hourly Lag') +
+  ylab('MI Rate Ratio') + xlab('Hourly Lag') +
   scale_y_continuous(breaks = seq(0.995, 1.025, by = 0.005)) +
   theme_bw() +
   theme(text = element_text(size = 16)) +
@@ -318,7 +318,7 @@ nyc_expRespLags_ind <- nyc_expRespLags_ind %>%
   geom_line(alpha = .9, color = "#800000FF", size = 1) +
   geom_ribbon(aes(ymin = lci, ymax = uci), alpha = .5, fill = "gray75") + 
   geom_hline(yintercept = 1, color = "black", linetype = "dashed") + 
-  ylab('Rate Ratio of MI Hospitalization') + xlab('Hourly Lag') +
+  ylab('MI Rate Ratio') + xlab('Hourly Lag') +
   scale_y_continuous(limits = c(0.995, 1.008),
                      breaks = seq(1, 1.02, by = 0.005)) +
   theme_bw() +

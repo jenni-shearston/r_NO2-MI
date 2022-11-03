@@ -49,8 +49,10 @@ tiff(paste0(output_path, 'Plots/', 'figS1_no2_timeseries.tif'),
      units = "in", width = 12, height = 10, res = 300)
 
 city_no2 %>% ggplot() +
-  geom_point(aes(x = datetime_ANY, y = no2_avg), 
-             alpha = 0.3, shape = 'circle open') +
+  geom_line(aes(x = datetime_ANY, y = no2_avg),
+            alpha = 0.3) +
+  #geom_point(aes(x = datetime_ANY, y = no2_avg), 
+  #           alpha = 0.3, shape = 'circle open') +
   geom_smooth(aes(x = datetime_ANY, y = no2_avg), 
               size = 1, color = "#800000FF") +
   facet_wrap(~city, nrow = 3, ncol = 3) +
