@@ -1,7 +1,7 @@
 # Load and Explore PM2.5 Data
 # NO2-MI Analysis
 # Jenni A. Shearston 
-# Updated 08/01/2022
+# Updated 11/22/2022
 
 ####***********************
 #### Table of Contents #### 
@@ -20,9 +20,9 @@
 ####***********
 
 # In this script we pull data from the EPA AQS API for a sensitivity analysis
-# where we adjust for PM2.5 (daily) for cities in which there are PM2.5 monitors
-# at any point during the study period. This includes a total of 5 cities: Buffalo,   
-# Cheektowaga, Corning, New York, and Rochester. 
+# where we adjust for PM2.5 (hourly / daily options) for cities in which there are 
+# PM2.5 monitors at any point during the study period. This includes a total of 5    
+# cities: Buffalo, Cheektowaga, Corning, New York, and Rochester. 
 
 
 ####*****************
@@ -50,7 +50,7 @@ monitors <- tribble(
   ~monitor_id, ~b_year, ~e_year, ~monitor_name, ~ city,
   "36-029-0023", 2014, 2016, "Buffalo Near-Road", 'Cheektowaga',
   "36-029-0005", 1999, 2016, "Buffalo", 'Buffalo',
-  "36-055-6001", 1999, 2003, "",  "Rochester",
+  "36-055-6001", 1999, 2003, "", "Rochester",
   "36-055-2002", 2000, 2003, "", "Rochester",
   "36-055-0015", 2015, 2016, "Rochester Near-Road", "Rochester",
   "36-055-1007", 2004, 2016, "Rochester 2", "Rochester",
@@ -275,28 +275,47 @@ monitors2 %>%
 # 4h Review POCs
 #    Notes: POCs are 'Parameter Occurrence Codes' that distinguish different 
 #           instruments that measure the same parameter at the same site
-#           Becuase we are averaging by city, we will not restrict to specific
+#           When we average by city-date, we will not restrict to specific
 #           POCs or ensure only one POC per datetime
+#           When we average by city-hour, we will restrict to the POC that
+#           reflects an hourly method (POC 4 for these monitors)
 table(monitors2$poc, useNA = c("always"))
 
-# 4i Aggregate to city (unique city/date combinations)
+# 4i Aggregate to city/date (unique city/date combinations)
 #    Notes: Aggregating to date rather than datetime because several PM2.5 
 #           monitors only do 24 hour (daily) measures
 # 4i.i Aggregate to city/date
-pm25_city <- monitors2 %>% group_by(city, date_any) %>% 
+pm25_city_day <- monitors2 %>% group_by(city, date_any) %>% 
   summarise(pm25_daily = mean(sample_measurement, na.rm = T))
 # 4i.ii Confirm only one observation per city/date
-check <- pm25_city %>% mutate(city_date = paste0(city, date_any))
+check <- pm25_city_day %>% mutate(city_date = paste0(city, date_any))
 check$city_date[duplicated(check$city_date)] # Check for duplicates --> should be 0
 
-# 4j Look over time again 
-pm25_city %>% 
+# 4j Aggregate to city/hour (unique city/hour combinations)
+#    Notes: Aggregate to hour in order to do sensitivity analysis with
+#           hourly pm2.5 for NYC (and maybe Rochester and Corning)
+# 4j.i Aggregate to city/hour
+pm25_city_hour <- monitors2 %>% filter(sample_duration == '1 HOUR') %>% 
+  group_by(city, datetime_gmt) %>% 
+  summarise(pm25_hourly = mean(sample_measurement, na.rm = T))
+# 4j.ii Confirm only one observation per city/hour
+check2 <- pm25_city_hour %>% mutate(city_datetime = paste0(city, datetime_gmt))
+check2$city_datetime[duplicated(check2$city_datetime)] # Check for duplicates --> should be 0
+
+# 4k Look over time again 
+pm25_city_day %>% 
   ggplot(aes(x = date_any, y = pm25_daily)) +
+  geom_line(color = 'darkgray') + 
+  geom_smooth() +
+  facet_wrap(~city, nrow = 2, ncol = 3)
+pm25_city_hour %>% 
+  ggplot(aes(x = datetime_gmt, y = pm25_hourly)) +
   geom_line(color = 'darkgray') + 
   geom_smooth() +
   facet_wrap(~city, nrow = 2, ncol = 3)
 
 # 4k Save out data
-pm25_city %>% write_fst(paste0(data_path, 'pm25_city.fst'))
+pm25_city_day %>% write_fst(paste0(data_path, 'pm25_city_day.fst'))
+pm25_city_hour %>% write_fst(paste0(data_path, 'pm25_city_hour.fst'))
 
 
