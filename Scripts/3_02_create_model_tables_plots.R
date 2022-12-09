@@ -81,6 +81,27 @@ ind_sens_48Lags <- read_csv(
 cumul_sens_48Lags <- read_csv(
   paste0(output_path, 'Estimates/',
          'EstCumul_HourlyNO2_MIcountPrim_48Lags_ERlin_LR4dfevenknots.csv'))
+# 0d.vii Secondary model estimates (all but NYC)
+ind_main_not_nyc <- read_csv(
+  paste0(output_path, 'Estimates/',
+         'EstInd_HourlyNO2_MIcountPrim_notNYC_ERlin_LR4dfevenknots.csv'))
+cumul_main_not_nyc <- read_csv(
+  paste0(output_path, 'Estimates/',
+         'EstCumul_HourlyNO2_MIcountPrim_notNYC_ERlin_LR4dfevenknots.csv'))
+# 0d.viii Sensitivity: 2014-2015 NYC 
+ind_sens_1415NoPM <- read_csv(
+  paste0(output_path, 'Estimates/',
+         'EstInd_HourlyNO2_MIcountPrim_1415NoPM_ERlin_LR4dfevenknots.csv'))
+cumul_sens_1415NoPM <- read_csv(
+  paste0(output_path, 'Estimates/',
+         'EstCumul_HourlyNO2_MIcountPrim_1415NoPM_ERlin_LR4dfevenknots.csv'))
+# 0d.ix Sensitivity: 2014-2015 NYC adjusted for PM2.5
+ind_sens_1415PM <- read_csv(
+  paste0(output_path, 'Estimates/',
+         'EstInd_HourlyNO2_MIcountPrim_1415PM_ERlin_LR4dfevenknots.csv'))
+cumul_sens_1415PM <- read_csv(
+  paste0(output_path, 'Estimates/',
+         'EstCumul_HourlyNO2_MIcountPrim_1415PM_ERlin_LR4dfevenknots.csv'))
 
 
 ####*********************************************************************************
@@ -261,6 +282,18 @@ table_plot(ind_sens_DXA410X1, "Ind", "DXA410X1", 'S4.1_S4.2')
 # 5f Sensitivity analysis: 48 Lags
 table_plot(cumul_sens_48Lags, "Cumul", "48Lags", 'S5.3')
 table_plot(ind_sens_48Lags, "Ind", "48Lags", 'S5.1_S5.2')
+
+# 5g Create estimate table and manuscript plots for secondary analysis (all but NYC)
+table_plot(cumul_main_not_nyc, "Cumul", "notNYC", '6.2')
+table_plot(ind_main_not_nyc, "Ind", "notNYC", '6.1_X')
+
+# 5h Sensitivity analysis: 2014-2015 NYC not adjusted for PM2.5
+table_plot(cumul_sens_1415NoPM, "Cumul", "1415NoPM", 'S6.3')
+table_plot(ind_sens_1415NoPM, "Ind", "1415NoPM", 'S6.1_S6.2')
+
+# 5i Sensitivity analysis: 2014-2015 NYC adjusted for PM2.5
+table_plot(cumul_sens_1415PM, "Cumul", "1415PM", 'S7.3')
+table_plot(ind_sens_1415PM, "Ind", "1415PM", 'S7.1_S7.2')
 
 
 ####**************************

@@ -1,7 +1,7 @@
 # Conduct DLNM Case-crossover Analyses
 # NO2-MI Analysis
 # Jenni A. Shearston 
-# Updated 08/11/2022
+# Updated 11/22/2022
 
 ####***********************
 #### Table of Contents #### 
@@ -33,16 +33,19 @@
 #                which less than 5% of cases and controls were missing NO2 data, for
 #                all cities with hourly NO2 data
 
-# Secondary analysis: Main analysis restricted to New York City only
+# Secondary analysis: 
+#  1. Main analysis restricted to New York City only
+#  2. Main analysis restricted to all cities except NYC                   
 
 # Sensitivity analyses:
 #  1. Instead of 24 hourly lags, evaluating 48 hours of lags
 #  2. Excluding relative humidity from the model
 #  3. Conducting a zip code level analysis rather than city level
 #  4. Restricting to MI cases that were in the first diagnostic position (MI_count_DXA410X1) 
+#  5. In years 2014-2015 for NYC, adjusting for hourly PM2.5
 #  We considered, but chose NOT to do an additional sensitivity analysis where we
-#    additionally adjusted for PM2.5, because there was so much missingness that the
-#    results would not be comparable to the main analysis
+#    adjusted for daily PM2.5 in the full dataset, because there was so much missingness 
+#    that the results would not be comparable to the main analysis
 
 
 ####********************
@@ -152,6 +155,18 @@ data4casecross_NYC <- data4casecross_city %>%
   mutate(Case = ifelse(HourName == 'CaseHour_0', 1, 0),         # bivariate Case variable
          TimetoEvent = if_else(HourName == 'CaseHour_0', 1, 2)) # bivariate Case variable for coxph model (if using instead of clogit)    
 
+# 3f Add needed vars for all cities except NYC secondary analysis
+data4casecross_NotNYC <- data4casecross_city %>% 
+  filter(!city == 'New York') %>% 
+  mutate(Case = ifelse(HourName == 'CaseHour_0', 1, 0),         # bivariate Case variable
+         TimetoEvent = if_else(HourName == 'CaseHour_0', 1, 2)) # bivariate Case variable for coxph model (if using instead of clogit)    
+
+# 3g Add needed vars for pm25 sens analysis
+data4casecross_1415nyc <- data4casecross_city %>% 
+  filter(city == 'New York' & (year == '2014' | year == '2015')) %>% 
+  mutate(Case = ifelse(HourName == 'CaseHour_0', 1, 0),         # bivariate Case variable
+         TimetoEvent = if_else(HourName == 'CaseHour_0', 1, 2)) # bivariate Case variable for coxph model (if using instead of clogit)    
+
 
 ####****************************************************************************** BEGIN FUNCTION
 # Here I edit functions developed by Sebastian Rowland
@@ -173,10 +188,11 @@ ModelIdentifier <- paste0(ExpTerm, '_', CaseType, '_', Sensitivity)
 ExpConstraints <- paste0('ER', ERConstraint, '_LR', LRConstraint)
 ModelName <- paste0(ModelIdentifier,'_', ExpConstraints)
 
-# 4c Determine number of lag hours to include
+# 4c Determine number of lag hours to include 
 if(str_detect(Sensitivity, 'Main') | str_detect(Sensitivity, 'NYC')
    | str_detect(Sensitivity, 'NoRH') | str_detect(Sensitivity, 'Zips')
-   | str_detect(Sensitivity, 'MI_count_DXA410X1')){NumLag <- 24} 
+   | str_detect(Sensitivity, 'MI_count_DXA410X1') | str_detect(Sensitivity, 'notNYC')
+   | str_detect(Sensitivity, '1415NoPM') | str_detect(Sensitivity, '1415PM')){NumLag <- 24} 
 if(str_detect(Sensitivity, '48Lags')){NumLag <- 48}
 
 
@@ -189,21 +205,21 @@ if(str_detect(Sensitivity, '48Lags')){NumLag <- 48}
 ERdf <- as.numeric(str_remove_all(ERConstraint, '[A-z]')) # Remove all letters, leaving only number of df (degrees of freedom)
 LRdf <- as.numeric(str_remove_all(LRConstraint, '[A-z]'))
 
-# 5x Create cross basis for temperature
+# 5b Create cross basis for temperature
 cb.hrlytemp <- crossbasis(
   as.matrix(dplyr::select(dta, contains('temp_lag')))[,1:NumLag], 
   lag=c(0,(NumLag-1)),
   argvar=list(fun='ns', df = 3),
   arglag=list(fun='ns', df = 4))
 
-# 5x Create cross basis for relative humidity
+# 5c Create cross basis for relative humidity
 cb.hrlyrh <- crossbasis(
   as.matrix(dplyr::select(dta, contains('rh_lag')))[,1:NumLag], 
   lag=c(0,(NumLag-1)),
   argvar=list(fun='ns', df = 3),
   arglag=list(fun='ns', df = 4))
 
-# 5b Create cross basis for NO2 (~ 1min)
+# 5d Create cross basis for NO2 (~ 1min)
 if(str_detect(ERConstraint, 'evenknots') & str_detect(LRConstraint, 'evenknots')){
   cb.hrlyNO2 <- crossbasis(
     as.matrix(dplyr::select(dta, contains('no2_lag')))[,1:NumLag], 
@@ -218,15 +234,25 @@ if(str_detect(ERConstraint, 'lin') & str_detect(LRConstraint, 'evenknots')){
     argvar=list(fun='lin'),
     arglag=list(fun='ns', df = LRdf))}
 
+# 5e Create cross basis for PM2.5 
+if(str_detect(Sensitivity, '1415PM')){
+  cb.hrlyPM25 <- crossbasis(
+    as.matrix(dplyr::select(dta, contains('pm25_lag')))[,1:NumLag], 
+    lag=c(0,(NumLag-1)),
+    argvar=list(fun='lin'),
+    arglag=list(fun='ns', df = LRdf))}
+
 
 ####****************************
 #### 6: Create health model #### 
 ####****************************
 
 # 6a Health model for main analysis, NYC sub analysis, zip code sens analysis,
-#    and 48 hr lag sens analysis
+#    48 hr lag sens analysis, all but NYC sub analysis, and 2014-2015 NYC analysis
+#    (conducted to compare with 2014-2015 NYC adjusted for PM analysis) 
 if(str_detect(Sensitivity, 'Main') | str_detect(Sensitivity, 'NYC')
-   | str_detect(Sensitivity, 'Zips') | str_detect(Sensitivity, '48Lags')){
+   | str_detect(Sensitivity, 'Zips') | str_detect(Sensitivity, '48Lags')
+   | str_detect(Sensitivity, 'notNYC') | str_detect(Sensitivity, '1415NoPM')){
   mod <- coxph(Surv(TimetoEvent, Case) ~ cb.hrlyNO2 +
                  #ns(temp, df = 3) + 
                  #ns(rh, df = 3) +
@@ -254,6 +280,19 @@ if(str_detect(Sensitivity, 'MI_count_DXA410X1')){
                  strata(id),                  # each case id is a strata
                weights = MI_count_DXA410X1,   # num of events in each hour (could only use if exposure is same for all cases/controls in a given hour)
                method = "efron",              # the method tells the model how to deal with ties
+               data = dta)}
+
+# 6d Health model for 2014-2015 NYC PM2.5 sens analysis 
+if(str_detect(Sensitivity, '1415PM')){
+  mod <- coxph(Surv(TimetoEvent, Case) ~ cb.hrlyNO2 +
+                 #ns(temp, df = 3) + 
+                 #ns(rh, df = 3) +
+                 cb.hrlytemp +
+                 cb.hrlyrh +
+                 cb.hrlyPM25 +
+                 strata(id),              # each case id is a strata
+               weights = MI_count_Prim,   # num of events in each hour (could only use if exposure is same for all cases/controls in a given hour)
+               method = "efron",          # the method tells the model how to deal with ties
                data = dta)}
 
 
@@ -493,6 +532,20 @@ analyze_dlnmNO2('HourlyNO2', 'MIcountDXA410X1', 'MI_count_DXA410X1', 'lin', '4df
 # 10f Run sensitivity analysis: 48 lags
 analyze_dlnmNO2('HourlyNO2', 'MIcountPrim', '48Lags', 'lin', '4dfevenknots',
                 'SaveModel', data4casecross_48lags)
+
+# 10g Run secondary all but NYC analysis
+analyze_dlnmNO2('HourlyNO2', 'MIcountPrim', 'notNYC', 'lin', '4dfevenknots',
+                'SaveModel', data4casecross_NotNYC)
+
+# 10h Run sensitivity analysis: 2014-2015 NYC not adjusted for hourly PM2.5
+#     Note: this analysis is only run to compare with the model that is 
+#           adjusted for hourly PM2.5
+analyze_dlnmNO2('HourlyNO2', 'MIcountPrim', '1415NoPM', 'lin', '4dfevenknots',
+                'SaveModel', data4casecross_1415nyc)
+
+# 10i Run sensitivity analysis: 2014-2015 NYC adjusted for hourly PM2.5
+analyze_dlnmNO2('HourlyNO2', 'MIcountPrim', '1415PM', 'lin', '4dfevenknots',
+                'SaveModel', data4casecross_1415nyc)
 
 
 
