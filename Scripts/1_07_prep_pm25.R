@@ -1,7 +1,7 @@
 # Load and Explore PM2.5 Data
 # NO2-MI Analysis
 # Jenni A. Shearston 
-# Updated 11/22/2022
+# Updated 12/13/2022
 
 ####***********************
 #### Table of Contents #### 
@@ -13,6 +13,7 @@
 # 2: Create Function to Pull from API
 # 3: Pull from API
 # 4: Clean Data Before Saving
+# 5: Identify Non-Traffic PM2.5
 
 
 ####***********
@@ -22,7 +23,9 @@
 # In this script we pull data from the EPA AQS API for a sensitivity analysis
 # where we adjust for PM2.5 (hourly / daily options) for cities in which there are 
 # PM2.5 monitors at any point during the study period. This includes a total of 5    
-# cities: Buffalo, Cheektowaga, Corning, New York, and Rochester. 
+# cities: Buffalo, Cheektowaga, Corning, New York, and Rochester. We also determine
+# non-traffic PM by regressing PM on NO2, and pull the residuals for use in a 
+# later sensitivity analysis. 
 
 
 ####*****************
@@ -38,6 +41,11 @@ source(paste0(project.folder, 'Scripts/', 'passwords.R'))
 
 # 0c Set up filepath(s)
 data_path <- '/Users/jennishearston/Dropbox/Columbia/Research/NO2_MI/Data/Intermediate_Data/'
+
+# 0d Load NO2 data
+city_no2 <- read_fst(paste0(data_path, 'no2_city_allhours')) %>% 
+  dplyr::select(-hours_in_month, -year_month, -missing, -tot_mis_bymonth,
+                -prop_mis_bymonth, -exclude_month_5per, -exclude_month_25per)
 
 
 ####*************************************
@@ -317,5 +325,37 @@ pm25_city_hour %>%
 # 4k Save out data
 pm25_city_day %>% write_fst(paste0(data_path, 'pm25_city_day.fst'))
 pm25_city_hour %>% write_fst(paste0(data_path, 'pm25_city_hour.fst'))
+
+
+####***********************************
+#### 5: Identify Non-Traffic PM2.5 #### 
+####***********************************
+
+# Notes: We will regress NO2 on PM2.5 to determine the portion of PM2.5 from
+#        traffic. We will then pull the residuals from the model, and use these
+#        in the sensitivity analysis adjusting for non-traffic PM2.5
+
+# 5a Convert PM2.5 from GMT to America/New_York timezone
+pm25_city_hour <- pm25_city_hour %>% 
+  mutate(datetime_ANY = with_tz(datetime_gmt, tz = 'America/New_York'))
+
+# 5b Add NO2 and PM2.5 to same dataset
+pm25_no2_city_hour <- pm25_city_hour %>% 
+  full_join(city_no2, by = c('datetime_ANY', 'city')) %>% 
+  na.omit() %>% 
+  dplyr::select(city, datetime_ANY, pm25_hourly, no2_avg)
+
+# 5c Regress NO2 on PM2.5
+nontraf_pm <- lm(pm25_hourly ~ no2_avg, data = pm25_no2_city_hour)
+
+# 5d Pull residuals
+#    Note: Saving as separate dataset because not all datetime/cities were
+#          included in the regression (did case complete analysis)
+pm25_city_hour_resids <- pm25_no2_city_hour %>% 
+  mutate(pm25_resids = residuals(nontraf_pm)) %>% 
+  dplyr::select(-pm25_hourly, -no2_avg)
+
+# 5e Save out data
+pm25_city_hour_resids %>% write_fst(paste0(data_path, 'pm25_city_hour_resids.fst'))
 
 
