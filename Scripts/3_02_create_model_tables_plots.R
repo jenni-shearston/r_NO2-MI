@@ -1,7 +1,7 @@
 # Create Tables and Plots to Show Model Results
 # NO2-MI Analysis
 # Jenni A. Shearston 
-# Updated 08/12/2022
+# Updated 12/14/2022
 
 ####***********************
 #### Table of Contents #### 
@@ -13,6 +13,9 @@
 # 2: Create table
 # 3: Create plot(s)
 # 4: Run function
+# 5:
+# 6:
+# 7:
 
 
 ####**************
@@ -370,5 +373,80 @@ print(nyc_plot)
 dev.off()
 
 
+####*****************************************
+#### 7: PM2.5 Sensitivity Analysis Plots #### 
+####*****************************************
 
+# Notes: Need to re-run these plots separately because they require
+#        a different y axis as the confidence intervals are wider than
+#        those from other models
 
+# 7a Individual lags: Plot of exposure response relationship, across lags,
+#                     for NYC 2014-2015, no PM adjustment
+# 7a.i Add 'Linear' as label value & convert from long to wide
+nyc1415NoPM_expRespLags_ind <- ind_sens_1415NoPM %>% 
+  mutate(Label = 'Linear') %>% 
+  dplyr::select(-...1) %>% 
+  dplyr::select(Label, CounterfactualNO2, everything()) %>% 
+  pivot_longer(fit.or.lag0:uci.or.lag23, names_to = "lag", values_to = "estimate")
+# 7a.ii Separate lag variable into lag and estimate type, then convert back to wide
+nyc1415NoPM_expRespLags_ind <- nyc1415NoPM_expRespLags_ind %>% 
+  mutate(est_type = str_sub(lag, start = 1, end = 3),
+         lag = str_replace(lag, "fit.or.lag", ""),
+         lag = str_replace(lag, "lci.or.lag", ""),
+         lag = str_replace(lag, "uci.or.lag", ""),
+         lag = as.numeric(lag)) %>% 
+  pivot_wider(names_from = est_type, values_from = estimate)
+# 7a.iii Create plot
+nyc1415NoPM_expRespLags_ind <- nyc1415NoPM_expRespLags_ind %>% 
+  filter(CounterfactualNO2 == 10) %>% 
+  ggplot(aes(x = lag, y = fit)) +
+  geom_line(alpha = .9, color = "#800000FF", size = 1) +
+  geom_ribbon(aes(ymin = lci, ymax = uci), alpha = .5, fill = "gray75") + 
+  geom_hline(yintercept = 1, color = "black", linetype = "dashed") + 
+  ylab('MI Rate Ratio') + xlab('Hourly Lag') +
+  scale_y_continuous(limits = c(0.990, 1.015),
+                     breaks = seq(0.990, 1.02, by = 0.005)) +
+  theme_bw() +
+  theme(text = element_text(size = 16)) 
+nyc1415NoPM_expRespLags_ind
+# 7a.iv Save plot
+tiff(paste0(output_path, 'Plots/figS6.1_expRespLags_ind_1415NoPM.tif'),
+     units = "in", width = 12, height = 6, res = 300)
+print(nyc1415NoPM_expRespLags_ind)
+dev.off()
+
+# 7b Individual lags: Plot of exposure response relationship, across lags,
+#                     for NYC 2014-2015, with PM adjustment
+# 7b.i Add 'Linear' as label value & convert from long to wide
+nyc1415PM_expRespLags_ind <- ind_sens_1415PM %>% 
+  mutate(Label = 'Linear') %>% 
+  dplyr::select(-...1) %>% 
+  dplyr::select(Label, CounterfactualNO2, everything()) %>% 
+  pivot_longer(fit.or.lag0:uci.or.lag23, names_to = "lag", values_to = "estimate")
+# 7b.ii Separate lag variable into lag and estimate type, then convert back to wide
+nyc1415PM_expRespLags_ind <- nyc1415PM_expRespLags_ind %>% 
+  mutate(est_type = str_sub(lag, start = 1, end = 3),
+         lag = str_replace(lag, "fit.or.lag", ""),
+         lag = str_replace(lag, "lci.or.lag", ""),
+         lag = str_replace(lag, "uci.or.lag", ""),
+         lag = as.numeric(lag)) %>% 
+  pivot_wider(names_from = est_type, values_from = estimate)
+# 7b.iii Create plot
+nyc1415PM_expRespLags_ind <- nyc1415PM_expRespLags_ind %>% 
+  filter(CounterfactualNO2 == 10) %>% 
+  ggplot(aes(x = lag, y = fit)) +
+  geom_line(alpha = .9, color = "#800000FF", size = 1) +
+  geom_ribbon(aes(ymin = lci, ymax = uci), alpha = .5, fill = "gray75") + 
+  geom_hline(yintercept = 1, color = "black", linetype = "dashed") + 
+  ylab('MI Rate Ratio') + xlab('Hourly Lag') +
+  scale_y_continuous(limits = c(0.990, 1.015),
+                     breaks = seq(0.990, 1.02, by = 0.005)) +
+  theme_bw() +
+  theme(text = element_text(size = 16)) 
+nyc1415PM_expRespLags_ind
+# 7b.iv Save plot
+tiff(paste0(output_path, 'Plots/figS7.1_expRespLags_ind_1415PM.tif'),
+     units = "in", width = 12, height = 6, res = 300)
+print(nyc1415PM_expRespLags_ind)
+dev.off()

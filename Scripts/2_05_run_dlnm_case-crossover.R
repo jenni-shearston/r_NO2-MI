@@ -237,7 +237,7 @@ if(str_detect(ERConstraint, 'lin') & str_detect(LRConstraint, 'evenknots')){
 # 5e Create cross basis for PM2.5 
 if(str_detect(Sensitivity, '1415PM')){
   cb.hrlyPM25 <- crossbasis(
-    as.matrix(dplyr::select(dta, contains('pm25_lag')))[,1:NumLag], 
+    as.matrix(dplyr::select(dta, contains('pm25resids_lag')))[,1:NumLag], 
     lag=c(0,(NumLag-1)),
     argvar=list(fun='lin'),
     arglag=list(fun='ns', df = LRdf))}
