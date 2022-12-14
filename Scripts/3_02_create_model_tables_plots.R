@@ -9,13 +9,13 @@
 
 # N: Notes
 # 0: Preparation 
-# 1: Clean data
-# 2: Create table
-# 3: Create plot(s)
-# 4: Run function
-# 5:
-# 6:
-# 7:
+# 1: Start function to create estimate table and manuscript plots for model results
+# 2: Clean data 
+# 3: Create table
+# 4: Create plots
+# 5: Run function
+# 6: Combine NYC Plots
+# 7: PM2.5 Sensitivity Analysis Plots
 
 
 ####**************
