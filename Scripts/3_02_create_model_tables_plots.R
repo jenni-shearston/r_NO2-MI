@@ -1,7 +1,7 @@
 # Create Tables and Plots to Show Model Results
 # NO2-MI Analysis
 # Jenni A. Shearston 
-# Updated 12/14/2022
+# Updated 12/15/2022
 
 ####***********************
 #### Table of Contents #### 
@@ -408,13 +408,9 @@ nyc1415NoPM_expRespLags_ind <- nyc1415NoPM_expRespLags_ind %>%
   scale_y_continuous(limits = c(0.990, 1.015),
                      breaks = seq(0.990, 1.02, by = 0.005)) +
   theme_bw() +
-  theme(text = element_text(size = 16)) 
+  theme(text = element_text(size = 16)) +
+  labs(title = expression(A:~Not~PM[2.5]~Adjusted))
 nyc1415NoPM_expRespLags_ind
-# 7a.iv Save plot
-tiff(paste0(output_path, 'Plots/figS6.1_expRespLags_ind_1415NoPM.tif'),
-     units = "in", width = 12, height = 6, res = 300)
-print(nyc1415NoPM_expRespLags_ind)
-dev.off()
 
 # 7b Individual lags: Plot of exposure response relationship, across lags,
 #                     for NYC 2014-2015, with PM adjustment
@@ -443,10 +439,17 @@ nyc1415PM_expRespLags_ind <- nyc1415PM_expRespLags_ind %>%
   scale_y_continuous(limits = c(0.990, 1.015),
                      breaks = seq(0.990, 1.02, by = 0.005)) +
   theme_bw() +
-  theme(text = element_text(size = 16)) 
+  theme(text = element_text(size = 16)) +
+  labs(title = expression(B:~PM[2.5]~Adjusted))
 nyc1415PM_expRespLags_ind
-# 7b.iv Save plot
-tiff(paste0(output_path, 'Plots/figS7.1_expRespLags_ind_1415PM.tif'),
+
+# 7c Combine plots
+nyc1415_plot <- cowplot::plot_grid(nyc1415NoPM_expRespLags_ind, 
+                                   nyc1415PM_expRespLags_ind)
+nyc1415_plot
+
+# 7d Save combined plot
+tiff(paste0(output_path, 'Plots/fig6_expRespLags_ind_NYC1415PM+NoPM.tif'),
      units = "in", width = 12, height = 6, res = 300)
-print(nyc1415PM_expRespLags_ind)
+print(nyc1415_plot)
 dev.off()
