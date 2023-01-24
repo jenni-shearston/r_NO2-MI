@@ -50,12 +50,11 @@ data4casecross_city %>%
   dplyr::select(city, year) %>% 
   table()
   
-# 1b Calculate variables needed for table: MI case count, 
+# 1b Calculate variables needed for table:  
 #    NO2 mean/sd, temp mean/sd, rh mean/sd
 #    Used data for all cases and controls
 data4casecross_city %>% group_by(city) %>% 
-  summarise(MI_case_count = sum(MI_count_Prim, na.rm = T),
-            NO2_mean = mean(no2_lag00, na.rm = T),
+  summarise(NO2_mean = mean(no2_lag00, na.rm = T),
             NO2_sd = sd(no2_lag00, na.rm = T),
             temp_mean = mean(temp_lag00, na.rm = T),
             temp_sd = sd(temp_lag00, na.rm = T),
@@ -64,21 +63,30 @@ data4casecross_city %>% group_by(city) %>%
 
 # 1c Add a total row to the table
 data4casecross_city %>%
-  summarise(MI_case_count = sum(MI_count_Prim, na.rm = T),
-            NO2_mean = mean(no2_lag00, na.rm = T),
+  summarise(NO2_mean = mean(no2_lag00, na.rm = T),
             NO2_sd = sd(no2_lag00, na.rm = T),
             temp_mean = mean(temp_lag00, na.rm = T),
             temp_sd = sd(temp_lag00, na.rm = T),
             rh_mean = mean(rh_lag00, na.rm = T),
             rh_sd = sd(rh_lag00, na.rm = T))
 
-# 1d Percent of cases in NYC
-tot_cases <- sum(data4casecross_city$MI_count_Prim, na.rm = T)
-nyc_cases <- data4casecross_city %>% filter(city == 'New York') %>% 
-  summarise(nyc_cases = sum(MI_count_Prim, na.rm = T))
-prop_nyc_cases <- (nyc_cases$nyc_cases/tot_cases)*100
+# 1d Calculate MI case count by city and MI case count total
+#    Note: include only rows marked "cases" so as not to quadruple
+#          count by also adding in the MIs on control days
+data4casecross_city %>% group_by(city, case_control) %>% 
+  summarise(MI_case_count = sum(MI_count_Prim, na.rm = T))
+data4casecross_city %>% group_by(case_control) %>% 
+  summarise(MI_case_count = sum(MI_count_Prim, na.rm = T))
 
-# 1e NO2 for cases vs control hours, entire study period
+# 1e Percent of cases in NYC
+tot_cases <- data4casecross_city %>% filter(case_control == 'case') %>% 
+  summarise(tot = sum(MI_count_Prim, na.rm = T))
+nyc_cases <- data4casecross_city %>% filter(city == 'New York' &
+                                              case_control == 'case') %>% 
+  summarise(nyc = sum(MI_count_Prim, na.rm = T))
+prop_nyc_cases <- (nyc_cases$nyc/tot_cases$tot)*100
+
+# 1f NO2 for cases vs control hours, entire study period
 data4casecross_city %>% group_by(case_control) %>%
   summarise(NO2_mean = mean(no2_lag00, na.rm = T),
             NO2_sd = sd(no2_lag00, na.rm = T))
