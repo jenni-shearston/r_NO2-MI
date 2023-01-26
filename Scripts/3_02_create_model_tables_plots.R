@@ -453,3 +453,106 @@ tiff(paste0(output_path, 'Plots/fig6_expRespLags_ind_NYC1415PM+NoPM.tif'),
      units = "in", width = 12, height = 6, res = 300)
 print(nyc1415_plot)
 dev.off()
+
+
+####********************************************************************
+#### 8: Create sens analysis plots w overlay of main model resuslts #### 
+####********************************************************************
+
+# 8a Create function
+# 8a.i Initialize function
+table_plot_sens <- function(sens_dataset, main_dataset, Analysis, FigNum){
+  #sens_dataset <- ind_sens_NoRH; main_dataset = ind_main
+  #Analysis = 'NoRH'; FigNum = '2'
+  
+  # 8a.ii Add Label variable for linear models
+  if(!'Label' %in% sens_dataset){
+    sens_dataset <- sens_dataset %>% mutate(Label = 'Linear')
+  }
+  if(!'Label' %in% main_dataset){
+    main_dataset <- main_dataset %>% mutate(Label = 'Linear')
+  }
+  
+  # 8a.iii Convert from wide to long format
+  if(str_detect(Analysis, '48Lags', negate = TRUE)){
+    sens_dataset <- sens_dataset %>% 
+      dplyr::select(-...1) %>% 
+      dplyr::select(Label, CounterfactualNO2, everything()) %>% 
+      pivot_longer(fit.or.lag0:uci.or.lag23, names_to = "lag", values_to = "estimate")
+    main_dataset <- main_dataset %>% 
+      dplyr::select(-...1) %>% 
+      dplyr::select(Label, CounterfactualNO2, everything()) %>% 
+      pivot_longer(fit.or.lag0:uci.or.lag23, names_to = "lag", values_to = "estimate")
+  }
+  if(str_detect(Analysis, '48Lags')){
+    sens_dataset <- sens_dataset %>% 
+      dplyr::select(-...1) %>% 
+      dplyr::select(Label, CounterfactualNO2, everything()) %>% 
+      pivot_longer(fit.or.lag0:uci.or.lag47, names_to = "lag", values_to = "estimate")
+    main_dataset <- main_dataset %>% 
+      dplyr::select(-...1) %>% 
+      dplyr::select(Label, CounterfactualNO2, everything()) %>% 
+      pivot_longer(fit.or.lag0:uci.or.lag23, names_to = "lag", values_to = "estimate")
+  }
+  
+  # 8a.iv Separate lag variable into lag and estimate type, then convert back to wide
+  main_dataset <- main_dataset %>% 
+    mutate(est_type = str_sub(lag, start = 1, end = 3),
+           lag = str_replace(lag, "fit.or.lag", ""),
+           lag = str_replace(lag, "lci.or.lag", ""),
+           lag = str_replace(lag, "uci.or.lag", ""),
+           lag = as.numeric(lag)) %>% 
+    pivot_wider(names_from = est_type, values_from = estimate) %>% 
+    filter(CounterfactualNO2 == 10)
+  sens_dataset <- sens_dataset %>% 
+    mutate(est_type = str_sub(lag, start = 1, end = 3),
+           lag = str_replace(lag, "fit.or.lag", ""),
+           lag = str_replace(lag, "lci.or.lag", ""),
+           lag = str_replace(lag, "uci.or.lag", ""),
+           lag = as.numeric(lag)) %>% 
+    pivot_wider(names_from = est_type, values_from = estimate) %>% 
+    filter(CounterfactualNO2 == 10)
+    
+  # 8a.v Plot of exposure response relationship, across lags, w main
+  #      model overlaid
+    expRespLagsWOverlay_ind <- 
+      ggplot() +
+      geom_line(aes(x = sens_dataset$lag, y = sens_dataset$fit), 
+                alpha = 1, color = "blue3", size = 1) +
+      geom_ribbon(aes(x = sens_dataset$lag, y = sens_dataset$fit, 
+                      ymin = sens_dataset$lci, ymax = sens_dataset$uci), 
+                  alpha = .3, fill = "lightskyblue1") + 
+      geom_line(aes(x = main_dataset$lag, y = main_dataset$fit), 
+                alpha = 1, color = "gray40", size = 1) +
+      geom_ribbon(aes(x = main_dataset$lag, y = main_dataset$fit, 
+                      ymin = main_dataset$lci, ymax = main_dataset$uci), 
+                  alpha = .3, fill = "gray80") + 
+      geom_hline(yintercept = 1, color = "black", linetype = "dashed") + 
+      ylab('MI Rate Ratio') + xlab('Hourly Lag') +
+      scale_y_continuous(limits = c(0.995, 1.008),
+                         breaks = seq(1, 1.02, by = 0.005)) +
+      theme_bw() +
+      theme(text = element_text(size = 16))
+   
+  # 8a.vi Save out plot   
+    tiff(paste0(output_path, 'Plots/', 'fig', FigNum, '_expRespLagsWOverlay_ind_',
+                Analysis, '.tif'),
+         units = "in", width = 8, height = 6, res = 300)
+    print(expRespLagsWOverlay_ind)
+    dev.off()
+}
+
+# 8b Run sensitivity analysis plot w main model overlay: no rh
+table_plot_sens(ind_sens_NoRH, ind_main, "NoRH", 'S3.4')
+
+# 8c Run sensitivity analysis plot w main model overlay: ZIP Codes
+table_plot_sens(ind_sens_zip, ind_main, "Zips", 'S4.4')
+
+# 8c Run sensitivity analysis plot w main model overlay: MI in first diag pos only
+table_plot_sens(ind_sens_DXA410X1, ind_main, "DXA410X1", 'S5.4')
+
+# 8c Run sensitivity analysis plot w main model overlay: 48 Lags
+table_plot_sens(ind_sens_48Lags, ind_main, "48Lags", 'S6.4')
+
+
+
