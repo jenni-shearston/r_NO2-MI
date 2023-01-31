@@ -58,7 +58,7 @@ data4casecross_city <- read_fst(paste0(data_path_external, 'data4casecross_city_
 ####********************************************
 
 # 1a Create and save plot
-tiff(paste0(output_path, 'Plots/', 'figS1_no2_timeseries.tif'),
+tiff(paste0(output_path, 'Plots/', 'figS2_no2_timeseries.tif'),
      units = "in", width = 12, height = 10, res = 300)
 
 city_no2 %>% ggplot() +

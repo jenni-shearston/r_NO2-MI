@@ -1,7 +1,7 @@
 # Create Tables and Plots to Show Model Results
 # NO2-MI Analysis
 # Jenni A. Shearston 
-# Updated 12/15/2022
+# Updated 01/30/2023
 
 ####***********************
 #### Table of Contents #### 
@@ -16,6 +16,7 @@
 # 5: Run function
 # 6: Combine NYC Plots
 # 7: PM2.5 Sensitivity Analysis Plots
+# 8: Create sens analysis plots w overlay of main model results
 
 
 ####**************
@@ -23,7 +24,8 @@
 ####**************
 
 # In this script, plots that show the exposure-response relationship across lags
-# and NO2 concentrations are created for the manuscript. 
+# and NO2 concentrations are created for the manuscript and supplementary
+# material. 
 
 
 ####********************
@@ -263,36 +265,36 @@ table_plot <- function(dataset, CumulInd, Analysis, FigNum){
 ####*********************
 
 # 5a Create estimate table and manuscript plots for main analysis
-table_plot(cumul_main, "Cumul", "Main", '4')
-table_plot(ind_main, "Ind", "Main", '2_3')
+table_plot(cumul_main, "Cumul", "Main", '5')
+table_plot(ind_main, "Ind", "Main", '3_4')
 
 # 5b Create estimate table and manuscript plots for secondary analysis (NYC alone)
-table_plot(cumul_main_nyc_city, "Cumul", "NYC", '5.2')
-table_plot(ind_main_nyc_city, "Ind", "NYC", '5.1_X')
+table_plot(cumul_main_nyc_city, "Cumul", "NYC", '6.2')
+table_plot(ind_main_nyc_city, "Ind", "NYC", '6.1_X')
 
 # 5c Sensitivity analysis: no rh
-table_plot(cumul_sens_NoRH, "Cumul", "NoRH", 'S2.3')
-table_plot(ind_sens_NoRH, "Ind", "NoRH", 'S2.1_S2.2')
+table_plot(cumul_sens_NoRH, "Cumul", "NoRH", 'S3.3')
+table_plot(ind_sens_NoRH, "Ind", "NoRH", 'S3.1_S3.2')
 
 # 5d Sensitivity analysis: zip codes
-table_plot(cumul_sens_zip, "Cumul", "Zips", 'S3.3')
-table_plot(ind_sens_zip, "Ind", "Zips", 'S3.1_S3.2')
+table_plot(cumul_sens_zip, "Cumul", "Zips", 'S4.3')
+table_plot(ind_sens_zip, "Ind", "Zips", 'S4.1_S4.2')
 
 # 5e Sensitivity analysis:  MI in the first diagnostic position only
-table_plot(cumul_sens_DXA410X1, "Cumul", "DXA410X1", 'S4.3')
-table_plot(ind_sens_DXA410X1, "Ind", "DXA410X1", 'S4.1_S4.2')
+table_plot(cumul_sens_DXA410X1, "Cumul", "DXA410X1", 'S5.3')
+table_plot(ind_sens_DXA410X1, "Ind", "DXA410X1", 'S5.1_S5.2')
 
 # 5f Sensitivity analysis: 48 Lags
-table_plot(cumul_sens_48Lags, "Cumul", "48Lags", 'S5.3')
-table_plot(ind_sens_48Lags, "Ind", "48Lags", 'S5.1_S5.2')
+table_plot(cumul_sens_48Lags, "Cumul", "48Lags", 'S6.3')
+table_plot(ind_sens_48Lags, "Ind", "48Lags", 'S6.1_S6.2')
 
 # 5g Create estimate table and manuscript plots for secondary analysis (all but NYC)
-table_plot(cumul_main_not_nyc, "Cumul", "notNYC", '6.2')
-table_plot(ind_main_not_nyc, "Ind", "notNYC", '6.1_X')
+table_plot(cumul_main_not_nyc, "Cumul", "notNYC", 'X')
+table_plot(ind_main_not_nyc, "Ind", "notNYC", 'X_X')
 
 # 5h Sensitivity analysis: 2014-2015 NYC not adjusted for PM2.5
-table_plot(cumul_sens_1415NoPM, "Cumul", "1415NoPM", 'S6.3')
-table_plot(ind_sens_1415NoPM, "Ind", "1415NoPM", 'S6.1_S6.2')
+table_plot(cumul_sens_1415NoPM, "Cumul", "1415NoPM", 'S7.3')
+table_plot(ind_sens_1415NoPM, "Ind", "1415NoPM", 'S7.1_S7.2')
 
 # 5i Sensitivity analysis: 2014-2015 NYC adjusted for PM2.5
 table_plot(cumul_sens_1415PM, "Cumul", "1415PM", 'S7.3')
@@ -367,7 +369,7 @@ nyc_plot <- cowplot::plot_grid(nyc_expRespLags_ind, nyc_expRespLags_cumul)
 nyc_plot
 
 # 6d Save combined plot
-tiff(paste0(output_path, 'Plots/fig5_expRespLags_ind+cumul_NYC.tif'),
+tiff(paste0(output_path, 'Plots/fig6_expRespLags_ind+cumul_NYC.tif'),
      units = "in", width = 12, height = 6, res = 300)
 print(nyc_plot)
 dev.off()
@@ -449,7 +451,7 @@ nyc1415_plot <- cowplot::plot_grid(nyc1415NoPM_expRespLags_ind,
 nyc1415_plot
 
 # 7d Save combined plot
-tiff(paste0(output_path, 'Plots/fig6_expRespLags_ind_NYC1415PM+NoPM.tif'),
+tiff(paste0(output_path, 'Plots/figS7_expRespLags_ind_NYC1415PM+NoPM.tif'),
      units = "in", width = 12, height = 6, res = 300)
 print(nyc1415_plot)
 dev.off()
