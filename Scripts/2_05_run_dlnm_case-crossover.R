@@ -1,7 +1,7 @@
 # Conduct DLNM Case-crossover Analyses
 # NO2-MI Analysis
 # Jenni A. Shearston 
-# Updated 11/22/2022
+# Updated 02/08/2023
 
 ####***********************
 #### Table of Contents #### 
@@ -456,23 +456,43 @@ if(str_detect(SaveModel, 'StoreAIC')){
 #### 9: Grid search to determine df for ER and lR #### 
 ####**************************************************
 
+# Notes: For the main model, a linear ER constraint and a 4df LR constraint was identified
+#        For the 48-hour lag, we assumed a linear ER constraint, since this should not
+#          change because of adding additional lags. A 5df LR constraint was identified
+
+#        The grid search may take 3-5 min to run for each model type
+
 # 9a Set dlnm / case-crossover function inputs
+# 9a.i Main model
 ExpTerm <- 'HourlyNO2'
 CaseType <- 'MIcountPrim'
 Sensitivity <- 'Main' 
 SaveModel <- 'StoreAIC'
 dta <- data4casecross_city
 ModelIdentifier <- paste0(ExpTerm, '_', CaseType, '_', Sensitivity)
-  
+# 9a.ii 48-hour lag model
+ExpTerm <- 'HourlyNO2'
+CaseType <- 'MIcountPrim'
+Sensitivity <- '48Lags' 
+SaveModel <- 'StoreAIC'
+dta <- data4casecross_48lags
+ModelIdentifier <- paste0(ExpTerm, '_', CaseType, '_', Sensitivity)
+
 # 9b Build constraint grid
+# 9b.i Main model
 CandidateConstraintsGrid <- data.frame(
   ERConstraint = rep(c('lin', '3dfevenknots','4dfevenknots', '5dfevenknots'), 3), 
   LRConstraint = c(rep('4dfevenknots',4), rep('5dfevenknots',4), rep('6dfevenknots',4)))
+# 9b.ii 48-hour lag model
+CandidateConstraintsGrid <- data.frame(
+  ERConstraint = rep(c('lin'), 4), 
+  LRConstraint = c(rep('4dfevenknots',1), rep('5dfevenknots',1), rep('6dfevenknots',1),
+                   rep('7dfevenknots',1)))
 
 # 9c Initialize loop over grid cells
 for(i in 1:nrow(CandidateConstraintsGrid)){
   # i <- 1
-  # 2b Fit model with candidate constraints
+  # Fit model with candidate constraints
   analyze_dlnmNO2(ExpTerm, CaseType, Sensitivity, 
                   CandidateConstraintsGrid$ERConstraint[i], CandidateConstraintsGrid$LRConstraint[i], 
                   SaveModel, dta)
@@ -530,7 +550,7 @@ analyze_dlnmNO2('HourlyNO2', 'MIcountDXA410X1', 'MI_count_DXA410X1', 'lin', '4df
                 'SaveModel', data4casecross_DXA410X1)
 
 # 10f Run sensitivity analysis: 48 lags
-analyze_dlnmNO2('HourlyNO2', 'MIcountPrim', '48Lags', 'lin', '4dfevenknots',
+analyze_dlnmNO2('HourlyNO2', 'MIcountPrim', '48Lags', 'lin', '5dfevenknots',
                 'SaveModel', data4casecross_48lags)
 
 # 10g Run secondary all but NYC analysis

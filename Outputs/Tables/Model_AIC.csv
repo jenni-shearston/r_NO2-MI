@@ -1,4 +1,8 @@
 ModelIdentifier,ERConstraint,LRConstraint,AIC,RunDate
+HourlyNO2_MIcountPrim_48Lags,lin,4dfevenknots,1729893.2941591693,2023-02-08T17:46:15Z
+HourlyNO2_MIcountPrim_48Lags,lin,5dfevenknots,1729893.1861367032,2023-02-08T17:47:07Z
+HourlyNO2_MIcountPrim_48Lags,lin,6dfevenknots,1729894.149502019,2023-02-08T17:48:06Z
+HourlyNO2_MIcountPrim_48Lags,lin,7dfevenknots,1729895.9586067502,2023-02-08T17:49:02Z
 HourlyNO2_MIcountPrim_cityNYC,3dfevenknots,3dfevenknots,1692342.4176946403,2022-08-12T16:33:39Z
 HourlyNO2_MIcountPrim_cityNYC,3dfevenknots,4dfevenknots,1692342.5297050956,2022-08-12T16:34:33Z
 HourlyNO2_MIcountPrim_cityNYC,3dfevenknots,5dfevenknots,1692343.696038793,2022-08-12T16:35:21Z
