@@ -69,7 +69,7 @@ df_contour %>%
   ggplot(aes(x = hour, y = no2_lag00)) +
   stat_contour_filled(aes(z = count_no2)) +
   scale_fill_distiller(super = metR::ScaleDiscretised, palette = "RdYlBu") +
-  labs(fill = 'Count of \n Obs.') +
+  labs(fill = 'Count of \n Hours') +
   xlab("Hour of Day") + ylab(expression('NO'[2]*' (ppb)')) +
   scale_x_continuous(limits = c(0, 23)) +
   theme_bw(base_size = 20)
