@@ -96,8 +96,8 @@ cc %>%
   xlab("Hour of Day") + ylab(expression('NO'[2]*' (ppb)')) +
   scale_x_continuous(limits = c(0, 23)) +
   scale_y_continuous(limits = c(0, 60)) +
-  theme_bw(base_size = 16) +
-  theme(legend.text = element_text(size = 10))
+  theme_bw(base_size = 20) +
+  theme(legend.text = element_text(size = 14))
 
 dev.off()
 
