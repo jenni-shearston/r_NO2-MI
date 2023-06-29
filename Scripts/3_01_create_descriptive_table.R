@@ -10,6 +10,8 @@
 # N: Notes
 # 0: Preparation 
 # 1: Calculations for Table 1
+# 2: Calculating EPA Standard
+# 3: Near-Road / Non-Near-Road Fraction
 
 ####**************
 #### N: Notes #### 
@@ -17,6 +19,10 @@
 
 # In this script, we use the dataset for the main models (with rows = observation
 # for a single case or control) to calculate descriptive statistics for Table 1.
+
+# We use all NO2 data to calculate the NO2 NAAQS standards during our study period,  
+# and the road-side/non-road-side fraction for the Buffalo/Cheektowaga area from 
+# 2014-2015.
 
 
 ####********************
@@ -37,6 +43,9 @@ output_path <- paste0(print(here::here('Outputs')),'/')
 # 0d Load data
 # 0d.i Load data used in main models
 data4casecross_city <- read_fst(paste0(data_path_external, 'data4casecross_city_5per.fst'))
+# 0d.ii NO2 data
+city_no2 <- read_fst(paste0(data_path, 'no2_city_allhours')) %>% 
+  mutate(datetime_ANY = ymd_hms(datetime_ANY, tz = 'America/New_York'))
 
 
 ####*********************************
@@ -91,3 +100,75 @@ data4casecross_city %>% group_by(case_control) %>%
   summarise(NO2_mean = mean(no2_lag00, na.rm = T),
             NO2_sd = sd(no2_lag00, na.rm = T))
   
+
+####*********************************
+#### 2: Calculating EPA Standard #### 
+####*********************************
+
+# 2a Calculate 1-hour daily max values 
+epa <- city_no2 %>% 
+  group_by(datetime_ANY) %>% 
+  summarise(max_no2 = max(no2_avg, na.rm = T))
+
+# 2b Identify the 98th percentile max concentrations for each year
+# 2b.i Create year variable
+epa <- epa %>% ungroup() %>% 
+  mutate(year = year(datetime_ANY))
+# 2b.ii Calculate 98th percentile for each year
+epa <- epa %>% group_by(year) %>% 
+  mutate(p98 = quantile(max_no2, c(.98), na.rm = T))
+
+# 2c Create 3-year assignments
+epa <- epa %>% ungroup() %>% 
+  mutate(yr_avg_period = 
+           case_when(
+           year == 2000 | year == 2001 | year == 2002 ~ 'ga',
+           year == 2001 | year == 2002 | year == 2003 ~ 'gb',
+           year == 2002 | year == 2003 | year == 2004 ~ 'gc',
+           year == 2003 | year == 2004 | year == 2005 ~ 'gd',
+           year == 2004 | year == 2005 | year == 2006 ~ 'ge',
+           year == 2005 | year == 2006 | year == 2007 ~ 'gf',
+           year == 2006 | year == 2007 | year == 2008 ~ 'gh',
+           year == 2007 | year == 2008 | year == 2009 ~ 'gi',
+           year == 2008 | year == 2009 | year == 2010 ~ 'gj',
+           year == 2009 | year == 2010 | year == 2011 ~ 'gk',
+           year == 2010 | year == 2011 | year == 2012 ~ 'gl',
+           year == 2011 | year == 2012 | year == 2013 ~ 'gm',
+           year == 2012 | year == 2013 | year == 2014 ~ 'gn',
+           year == 2013 | year == 2014 | year == 2015 ~ 'go',
+         ))
+
+# 2d Average 98 percentile values by 3-year averages
+epa <- epa %>% group_by(yr_avg_period) %>% 
+  summarise(epa_mean = mean(p98))
+
+
+####*******************************************
+#### 3: Near-Road / Non-Near-Road Fraction #### 
+####*******************************************
+
+# 3a Restrict to Buffalo and Cheektowaga, from 2014-2015
+#    Note: There is only one monitor in each place
+#          Cheektowaga is near-road, Buffalo is non-near-road
+#          Buffalo and Cheektowaga are part of the same metro area
+road_fraction <- city_no2 %>% 
+  filter(city == 'Buffalo' | city == 'Cheektowaga') %>% 
+  mutate(year = year(datetime_ANY)) %>% 
+  filter(year == 2014 | year == 2015) %>% 
+  dplyr::select(city, datetime_ANY, no2_avg)
+
+# 3b Pivot wider
+road_fraction <- road_fraction %>% 
+  pivot_wider(names_from = city,
+              values_from = no2_avg)
+
+# 3c Calculate hourly fraction
+road_fraction <- road_fraction %>% 
+  mutate(fraction = Cheektowaga/Buffalo)
+
+# 3e Calculate mean hourly fraction
+road_fraction %>% filter(!is.infinite(fraction)) %>% 
+  summarise(mean(fraction, na.rm = TRUE))
+
+
+

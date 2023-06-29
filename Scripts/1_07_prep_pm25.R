@@ -358,4 +358,19 @@ pm25_city_hour_resids <- pm25_no2_city_hour %>%
 # 5e Save out data
 pm25_city_hour_resids %>% write_fst(paste0(data_path, 'pm25_city_hour_resids.fst'))
 
+# 5f Run correlations between NO2 and PM2.5 & NO2 and non-traffic PM2.5
+# 5f.i NO2 and PM2.5 NYC and Rochester
+cor(pm25_no2_city_hour$pm25_hourly, pm25_no2_city_hour$no2_avg) # 0.48
+# 5f.ii NO2 and PM2.5 NYC only
+corA <- pm25_no2_city_hour %>% filter(city == 'New York')
+cor(corA$pm25_hourly, corA$no2_avg) # 0.55
+# 5f.iii NO2 and non-traffic PM2.5 NYC and Rochester
+corB <- pm25_no2_city_hour %>% 
+  mutate(pm25_resids = residuals(nontraf_pm))
+cor(corB$pm25_resids, corB$no2_avg) # 1.5e^-17
+# 5f.iv NO2 and non-traffic PM2.5 NYC only
+corC <- pm25_no2_city_hour %>% 
+  mutate(pm25_resids = residuals(nontraf_pm)) %>% filter(city == 'New York')
+cor(corC$pm25_resids, corC$no2_avg) # 0.07
+
 

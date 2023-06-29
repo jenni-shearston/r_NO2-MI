@@ -1,7 +1,7 @@
 # Conduct DLNM Case-crossover Analyses
 # NO2-MI Analysis
 # Jenni A. Shearston 
-# Updated 02/08/2023
+# Updated 06/27/2023
 
 ####***********************
 #### Table of Contents #### 
@@ -35,7 +35,9 @@
 
 # Secondary analysis: 
 #  1. Main analysis restricted to New York City only
-#  2. Main analysis restricted to all cities except NYC                   
+#  2. Main analysis with interaction for rush hour vs not 
+#  3. Main analysis restricted to all cities except NYC (this had substantially
+#     less power, so was not included as a secondary analysis)
 
 # Sensitivity analyses:
 #  1. Instead of 24 hourly lags, evaluating 48 hours of lags
@@ -46,6 +48,10 @@
 #  We considered, but chose NOT to do an additional sensitivity analysis where we
 #    adjusted for daily PM2.5 in the full dataset, because there was so much missingness 
 #    that the results would not be comparable to the main analysis
+#  6. In years 2014-2015 for NYC, adjusting for total PM2.5
+#  7. In NYC, adjusting for ozone
+#  8. In main analysis, removing Cheektowaga, Corning, and Rochester because they
+#     only have 1 or 2 years of data
 
 
 ####********************
@@ -65,7 +71,8 @@ output_path <- paste0(print(here::here('Outputs')),'/')
 
 # 0d Load data for case-crossover analyses
 # 0d.i Dataset for main analysis, NYC alone analysis, sens analysis excluding
-#      rh, sens analysis using MI in first position
+#      rh, sens analysis using MI in first position, sens analysis excluding
+#      Cheektowaga, Corning, Rochester, sens analysis w ozone and sens analysis w pm
 data4casecross_city <- read_fst(paste0(data_path_external, 'data4casecross_city_5per.fst'))
 # 0d.ii Dataset for sens analysis using zip codes
 data4casecross_zip <- read_fst(paste0(data_path_external, 'data4casecross_zip_5per.fst'))
@@ -167,6 +174,28 @@ data4casecross_1415nyc <- data4casecross_city %>%
   mutate(Case = ifelse(HourName == 'CaseHour_0', 1, 0),         # bivariate Case variable
          TimetoEvent = if_else(HourName == 'CaseHour_0', 1, 2)) # bivariate Case variable for coxph model (if using instead of clogit)    
 
+# 3h Add needed vars for sens analysis removing Cheektowaga, Rochester, Corning
+#    (cities that contribute only 1 or 2 years of data)
+data4casecross_RemoveSomeCities <- data4casecross_city %>% 
+  filter(!city %in% c('Cheektowaga', 'Corning', 'Rochester')) %>% 
+  mutate(Case = ifelse(HourName == 'CaseHour_0', 1, 0),         # bivariate Case variable
+         TimetoEvent = if_else(HourName == 'CaseHour_0', 1, 2)) # bivariate Case variable for coxph model (if using instead of clogit)    
+
+# 3i Add needed vars for rush hour stratification
+data4casecross_RushHour1 <- data4casecross_city %>% 
+  mutate(Case = ifelse(HourName == 'CaseHour_0', 1, 0),         # bivariate Case variable
+         TimetoEvent = if_else(HourName == 'CaseHour_0', 1, 2), # bivariate Case variable for coxph model (if using instead of clogit)    
+         CaseHour = hour(CaseDateTime),
+         dayOfWeek = wday(CaseDateTime, week_start = 1),
+         weekday = ifelse(dayOfWeek < 6, 1, 0),
+         rushHour = case_when(
+           CaseHour %in% c(6, 7, 8, 9, 10, 16, 17, 18, 19, 20) & weekday == 1 ~ 'rush hour',
+           TRUE ~ 'not rush hour'
+         )) %>% dplyr::select(year, city, CaseDateTime, id, DayDateTime, HourName, Case, 
+                              TimetoEvent, CaseHour, dayOfWeek, weekday, rushHour, everything())
+data4casecross_RushHour <- data4casecross_RushHour1 %>% filter(rushHour == 'rush hour')
+data4casecross_NotRushHour <- data4casecross_RushHour1 %>% filter(rushHour == 'not rush hour')
+
 
 ####****************************************************************************** BEGIN FUNCTION
 # Here I edit functions developed by Sebastian Rowland
@@ -192,7 +221,10 @@ ModelName <- paste0(ModelIdentifier,'_', ExpConstraints)
 if(str_detect(Sensitivity, 'Main') | str_detect(Sensitivity, 'NYC')
    | str_detect(Sensitivity, 'NoRH') | str_detect(Sensitivity, 'Zips')
    | str_detect(Sensitivity, 'MI_count_DXA410X1') | str_detect(Sensitivity, 'notNYC')
-   | str_detect(Sensitivity, '1415NoPM') | str_detect(Sensitivity, '1415PM')){NumLag <- 24} 
+   | str_detect(Sensitivity, '1415NoPM') | str_detect(Sensitivity, '1415PM')
+   | str_detect(Sensitivity, 'RemoveSomeCities') | str_detect(Sensitivity, 'RushHour')
+   | str_detect(Sensitivity, 'NotRushHour')
+   | str_detect(Sensitivity, '1415PMfull') | str_detect(Sensitivity, 'NYCozone')){NumLag <- 24} 
 if(str_detect(Sensitivity, '48Lags')){NumLag <- 48}
 
 
@@ -234,7 +266,7 @@ if(str_detect(ERConstraint, 'lin') & str_detect(LRConstraint, 'evenknots')){
     argvar=list(fun='lin'),
     arglag=list(fun='ns', df = LRdf))}
 
-# 5e Create cross basis for PM2.5 
+# 5e Create cross basis for PM2.5 resids
 if(str_detect(Sensitivity, '1415PM')){
   cb.hrlyPM25 <- crossbasis(
     as.matrix(dplyr::select(dta, contains('pm25resids_lag')))[,1:NumLag], 
@@ -242,17 +274,38 @@ if(str_detect(Sensitivity, '1415PM')){
     argvar=list(fun='lin'),
     arglag=list(fun='ns', df = LRdf))}
 
+# 5f Create cross basis for PM2.5 full
+if(str_detect(Sensitivity, '1415PMfull')){
+  cb.hrlyPM25full <- crossbasis(
+    as.matrix(dplyr::select(dta, contains('pm25full_lag')))[,1:NumLag], 
+    lag=c(0,(NumLag-1)),
+    argvar=list(fun='lin'),
+    arglag=list(fun='ns', df = LRdf))}
+
+# 5g Create cross basis for ozone
+if(str_detect(Sensitivity, 'NYCozone')){
+  cb.hrlyOzone <- crossbasis(
+    as.matrix(dplyr::select(dta, contains('ozone_lag')))[,1:NumLag],
+    lag=c(0,(NumLag-1)),
+    argvar=list(fun='lin'),
+    arglag=list(fun='ns', df = LRdf)
+  )
+}
+
 
 ####****************************
 #### 6: Create health model #### 
 ####****************************
 
 # 6a Health model for main analysis, NYC sub analysis, zip code sens analysis,
-#    48 hr lag sens analysis, all but NYC sub analysis, and 2014-2015 NYC analysis
-#    (conducted to compare with 2014-2015 NYC adjusted for PM analysis) 
+#    48 hr lag sens analysis, all but NYC sub analysis, 2014-2015 NYC analysis
+#    (conducted to compare with 2014-2015 NYC adjusted for PM analysis), 
+#    sens analysis removing Cheektowaga, Corning, and Rochester
 if(str_detect(Sensitivity, 'Main') | str_detect(Sensitivity, 'NYC')
    | str_detect(Sensitivity, 'Zips') | str_detect(Sensitivity, '48Lags')
-   | str_detect(Sensitivity, 'notNYC') | str_detect(Sensitivity, '1415NoPM')){
+   | str_detect(Sensitivity, 'notNYC') | str_detect(Sensitivity, '1415NoPM')
+   | str_detect(Sensitivity, 'RemoveSomeCities') | str_detect(Sensitivity, 'RushHour')
+   | str_detect(Sensitivity, 'NotRushHour')){
   mod <- coxph(Surv(TimetoEvent, Case) ~ cb.hrlyNO2 +
                  #ns(temp, df = 3) + 
                  #ns(rh, df = 3) +
@@ -293,6 +346,30 @@ if(str_detect(Sensitivity, '1415PM')){
                  strata(id),              # each case id is a strata
                weights = MI_count_Prim,   # num of events in each hour (could only use if exposure is same for all cases/controls in a given hour)
                method = "efron",          # the method tells the model how to deal with ties
+               data = dta)}
+
+# 6e Health model for 2014-2015 NYC PM2.5 sens analysis 
+if(str_detect(Sensitivity, '1415PMfull')){
+  mod <- coxph(Surv(TimetoEvent, Case) ~ cb.hrlyNO2 +
+                 #ns(temp, df = 3) + 
+                 #ns(rh, df = 3) +
+                 cb.hrlytemp +
+                 cb.hrlyrh +
+                 cb.hrlyPM25full +
+                 strata(id),              # each case id is a strata
+               weights = MI_count_Prim,   # num of events in each hour (could only use if exposure is same for all cases/controls in a given hour)
+               method = "efron",          # the method tells the model how to deal with ties
+               data = dta)}
+
+# 6f Health model for NYC ozone sens analysis
+if(str_detect(Sensitivity, 'NYCozone')){
+  mod <- coxph(Surv(TimetoEvent, Case) ~ cb.hrlyNO2 +
+                 cb.hrlytemp +
+                 cb.hrlyrh +
+                 cb.hrlyOzone +
+                 strata(id),
+               weights = MI_count_Prim,
+               method = "efron",
                data = dta)}
 
 
@@ -563,10 +640,27 @@ analyze_dlnmNO2('HourlyNO2', 'MIcountPrim', 'notNYC', 'lin', '4dfevenknots',
 analyze_dlnmNO2('HourlyNO2', 'MIcountPrim', '1415NoPM', 'lin', '4dfevenknots',
                 'SaveModel', data4casecross_1415nyc)
 
-# 10i Run sensitivity analysis: 2014-2015 NYC adjusted for hourly PM2.5
+# 10i Run sensitivity analysis: 2014-2015 NYC adjusted for hourly PM2.5 resids
 analyze_dlnmNO2('HourlyNO2', 'MIcountPrim', '1415PM', 'lin', '4dfevenknots',
                 'SaveModel', data4casecross_1415nyc)
 
+# 10j Run sensitivity analysis: remove Cheektowaga, Corning, Rochester
+analyze_dlnmNO2('HourlyNO2', 'MIcountPrim', 'RemoveSomeCities', 'lin', '4dfevenknots',
+                'SaveModel', data4casecross_RemoveSomeCities)
 
+# 10k Run sensitivity analysis: 2014-2015 NYC adjusted for hourly PM2.5 full
+analyze_dlnmNO2('HourlyNO2', 'MIcountPrim', '1415PMfull', 'lin', '4dfevenknots',
+                'SaveModel', data4casecross_1415nyc)
 
+# 10l Run sensitivity analysis: NYC adjusting for ozone
+analyze_dlnmNO2('HourlyNO2', 'MIcountPrim', 'NYCozone', 'lin', '4dfevenknots',
+                'SaveModel', data4casecross_NYC)
+
+# 10m Run secondary analysis: Rush hour
+analyze_dlnmNO2('HourlyNO2', 'MIcountPrim', 'RushHour', 'lin', '4dfevenknots',
+                'SaveModel', data4casecross_RushHour)
+
+# 10n Run secondary analysis: Not rush hour
+analyze_dlnmNO2('HourlyNO2', 'MIcountPrim', 'NotRushHour', 'lin', '4dfevenknots',
+                'SaveModel', data4casecross_NotRushHour)
 

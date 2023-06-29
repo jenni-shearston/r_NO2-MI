@@ -1,7 +1,7 @@
-# Create Control Date-Hours
+# Combine MI and Covariate Data
 # NO2-MI Analysis
 # Jenni A. Shearston 
-# Updated 12/13/2022
+# Updated 06/27/2023
 
 ####***********************
 #### Table of Contents #### 
@@ -9,7 +9,7 @@
 
 # N: Notes
 # 0: Preparation 
-# 1: Create City-level MI + Weather + PM2.5 Dataset
+# 1: Create City-level MI + Weather + PM2.5 Dataset + Ozone
 # 2: Create City-level MI + Weather Dataset with 48 Lags
 # 3: Create Zipcode-level MI + Weather Dataset
 
@@ -20,7 +20,8 @@
 
 # We must match all timezones. PM2.5 is in EST (no adjustment for daylight 
 # savings) while MI data is in America/New_York (adjusted for daylight savings).
-# Weather data is in the number of hours since 1990/01/01 00:00:00, tz = America/New_York
+# Weather data is in the number of hours since 1990/01/01 00:00:00, tz = America/New_York.
+# Ozone data is in GMT.
 
 
 ####********************
@@ -44,11 +45,14 @@ w_zc <- read_fst(paste0(data_path, 'weather_zipcode.fst'))
 # 0b.ii Load pm2.5 data
 #       Note: pm data only needs to be added to the city dataset because it is
 #             only used in a sensitivity analysis. We will use the resids 
-#             dataset to represent non-traffic pm2.5
-#pm_city_hour <- read_fst(paste0(data_path, 'pm25_city_hour.fst'))
+#             dataset to represent non-traffic pm2.5, and the full dataset for
+#             all PM2.5
+pm_city_hour <- read_fst(paste0(data_path, 'pm25_city_hour.fst'))
 pm_city_hour_resids <- read_fst(paste0(data_path, 'pm25_city_hour_resids.fst'))
 pm_city_day <- read_fst(paste0(data_path, 'pm25_city_day.fst'))
-# 0b.iii Load MI data (city level only - will load zip level later)
+# 0b.iii Load ozone data
+ozone_city_hour <- read_fst(paste0(data_path, 'ozone_city_hour.fst'))
+# 0b.iv Load MI data (city level only - will load zip level later)
 setwd(data_path_external)
 mi_city <- tibble(file_name = list.files(pattern = "controlhours_city."),                              
                   year = str_sub(file_name, start = -8L, end = -5L),                              
@@ -58,9 +62,9 @@ mi_city <- tibble(file_name = list.files(pattern = "controlhours_city."),
   unnest(cols = "outcome_data")
 
 
-####*******************************************************
-#### 1: Create City-level MI + Weather + PM2.5 Dataset #### 
-####*******************************************************
+####***************************************************************
+#### 1: Create City-level MI + Weather + PM2.5 + Ozone Dataset #### 
+####***************************************************************
 
 # 1a Transform all datetime variables to America/New_York
 #    Note: YYYY does not match the year in the datetime variable for the first
@@ -79,33 +83,40 @@ w_city <- w_city %>% mutate(datetime = as_datetime(HourIndex*3600,
                                                    origin = '1990/01/01 00:00:00',
                                                    tz = 'America/New_York'))
 pm_city_day <- pm_city_day %>% mutate(date_any = ymd(date_any, tz = "America/New_York")) 
-#pm_city_hour <- pm_city_hour %>% mutate(datetime_gmt = ymd_hms(datetime_gmt, tz = 'GMT')) %>% 
-#  mutate(datetime_any = with_tz(datetime_gmt, tz = 'America/New_York'))
+pm_city_hour <- pm_city_hour %>% mutate(datetime_gmt = ymd_hms(datetime_gmt, tz = 'GMT')) %>% 
+  mutate(datetime_any = with_tz(datetime_gmt, tz = 'America/New_York'))
 pm_city_hour_resids <- pm_city_hour_resids %>% 
   mutate(datetime_any = ymd_hms(datetime_ANY, tz = 'America/New_York'))
+ozone_city_hour <- ozone_city_hour %>% mutate(datetime_gmt = ymd_hms(datetime_gmt, tz = 'GMT')) %>% 
+  mutate(datetime_any = with_tz(datetime_gmt, tz = 'America/New_York'))
 
 # 1b Create unique city/datetime id variable (city_activeLag) to merge mi data 
-#    with weather data and hourly pm data (only create for weather and pm data, 
+#    with weather data and hourly pm data (only create for weather, pm, O3 data, 
 #    is created in lag function for MI data)
 # 1b.i Create variables
 w_city <- w_city %>% mutate(city_activeLag = paste0(city, datetime)) %>% 
   dplyr::select(city_activeLag, rh, temp)
-# pm_city_hour <- pm_city_hour %>% mutate(city_activeLag = paste0(city, datetime_any)) %>% 
-#   dplyr::select(city_activeLag, pm25_hourly)
+pm_city_hour <- pm_city_hour %>% mutate(city_activeLag = paste0(city, datetime_any)) %>% 
+  dplyr::select(city_activeLag, pm25_hourly)
 pm_city_hour_resids <- pm_city_hour_resids %>% mutate(city_activeLag = paste0(city, datetime_any)) %>% 
   dplyr::select(city_activeLag, pm25_resids)
-# 1b.ii Average weather & pm vars by city_activeLag variable to remove duplicate Daylight
+ozone_city_hour <- ozone_city_hour %>% mutate(city_activeLag = paste0(city, datetime_any)) %>% 
+  dplyr::select(city_activeLag, ozone_hourly)
+# 1b.ii Average weather, pm, O3 vars by city_activeLag variable to remove duplicate Daylight
 #       Savings ending hours in the Fall
 w_city <- w_city %>% group_by(city_activeLag) %>% 
   summarize(rh = mean(rh, na.rm = T), temp = mean(temp, na.rm = T))
-# pm_city_hour <- pm_city_hour %>% group_by(city_activeLag) %>% 
-#   summarize(pm25_hourly = mean(pm25_hourly, na.rm = T))
+pm_city_hour <- pm_city_hour %>% group_by(city_activeLag) %>%
+  summarize(pm25_hourly = mean(pm25_hourly, na.rm = T))
 pm_city_hour_resids <- pm_city_hour_resids %>% group_by(city_activeLag) %>% 
   summarize(pm25_resids = mean(pm25_resids, na.rm = T))
-# 1b.iii Confirm only one weather and pm observation per unique city_datetime
+ozone_city_hour <- ozone_city_hour %>% group_by(city_activeLag) %>%
+  summarize(ozone_hourly = mean(ozone_hourly, na.rm = T))
+# 1b.iii Confirm only one weather, pm, and ozone observation per unique city_datetime
 length(unique(w_city$city_activeLag)) # equal to df length
-#length(unique(pm_city_hour$city_activeLag)) # equal to df length
+length(unique(pm_city_hour$city_activeLag)) # equal to df length
 length(unique(pm_city_hour_resids$city_activeLag)) # equal to df length
+length(unique(ozone_city_hour$city_activeLag)) # equal to df length
 
 # 1c Create unique city/date id variable to merge mi data with daily pm data
 mi_city <- mi_city %>% mutate(DayDate = date(DayDateTime)) %>%
@@ -155,7 +166,7 @@ for(l in 0:(maxLag-1)){
   city_outcome_covar <- assign_laggedWeather_city(city_outcome_covar, w_city, l)
 }
 
-# 1g Initialize function to assign lagged hourly pm2.5 
+# 1g Initialize function to assign lagged hourly pm2.5 (resids)
 assign_laggedPM_city <- function(dta_outcome, dta_hourlypm, numLag){
   #dta_outcome <- mi[1:1000,]
   #dta_exp <- no2_city
@@ -182,13 +193,79 @@ assign_laggedPM_city <- function(dta_outcome, dta_hourlypm, numLag){
     dplyr::select(-pm25_resids, -activeLag, -city_activeLag)
 }
 
-# 1h Assign city-wide weather covariates via a loop
+# 1h Assign city-wide pm resids via a loop
 maxLag <- 24
 for(l in 0:(maxLag-1)){
   city_outcome_covar <- assign_laggedPM_city(city_outcome_covar, pm_city_hour_resids, l)
 }
 
-# 1i Check missing
+# 1i Initialize function to assign lagged hourly pm2.5 (full)
+assign_laggedPMfull_city <- function(dta_outcome, dta_hourlypm, numLag){
+  #dta_outcome <- mi[1:1000,]
+  #dta_exp <- no2_city
+  #numLag <- 12
+  
+  # 1i.1 Create variable name 
+  VarName1 <- paste0('pm25full_lag', str_pad(numLag, 2, 'left', '0'))
+  
+  # 1i.2 Create column of lag 
+  dta_outcome <- dta_outcome %>% 
+    mutate(DayDateTime = ymd_hms(DayDateTime, tz = "America/New_York")) %>% 
+    mutate(activeLag := DayDateTime - as.period(1 * numLag, 'hour')) %>% 
+    mutate(city_activeLag = paste0(city, activeLag))
+  
+  # 1i.3 Join with exposure data 
+  dta_outcome <- dta_outcome %>%
+    left_join(dta_hourlypm, by = 'city_activeLag')
+  
+  # 1i.4 Rename lagged exposure column
+  # this is done in two steps because it is tricky to do dynamic variable naming 
+  # with the rename() function. mutate + select does the same thing.
+  dta_outcome <- dta_outcome %>% 
+    mutate(!!VarName1 := pm25_hourly) %>% 
+    dplyr::select(-pm25_hourly, -activeLag, -city_activeLag)
+}
+
+# 1j Assign city-wide pm (not resids) via a loop
+maxLag <- 24
+for(l in 0:(maxLag-1)){
+  city_outcome_covar <- assign_laggedPMfull_city(city_outcome_covar, pm_city_hour, l)
+}
+
+# 1k Initialize function to assign lagged hourly ozone
+assign_laggedOzone_city <- function(dta_outcome, dta_hourlyozone, numLag){
+  #dta_outcome <- mi[1:1000,]
+  #dta_exp <- ozone_city_hour
+  #numLag <- 12
+  
+  # 1i.1 Create variable name 
+  VarName1 <- paste0('ozone_lag', str_pad(numLag, 2, 'left', '0'))
+  
+  # 1i.2 Create column of lag 
+  dta_outcome <- dta_outcome %>% 
+    mutate(DayDateTime = ymd_hms(DayDateTime, tz = "America/New_York")) %>% 
+    mutate(activeLag := DayDateTime - as.period(1 * numLag, 'hour')) %>% 
+    mutate(city_activeLag = paste0(city, activeLag))
+  
+  # 1i.3 Join with exposure data 
+  dta_outcome <- dta_outcome %>%
+    left_join(dta_hourlyozone, by = 'city_activeLag')
+  
+  # 1i.4 Rename lagged exposure column
+  # this is done in two steps because it is tricky to do dynamic variable naming 
+  # with the rename() function. mutate + select does the same thing.
+  dta_outcome <- dta_outcome %>% 
+    mutate(!!VarName1 := ozone_hourly) %>% 
+    dplyr::select(-ozone_hourly, -activeLag, -city_activeLag)
+}
+
+# 1l Assign city-wide ozone via a loop
+maxLag <- 24
+for(l in 0:(maxLag-1)){
+  city_outcome_covar <- assign_laggedOzone_city(city_outcome_covar, ozone_city_hour, l)
+}
+
+# 1m Check missing
 # there are two missing rh/temp observations, resulting in 67 to 111 missing obs
 # for each lag
 # there are 296,673 missing daily pm observations
@@ -201,10 +278,10 @@ for(l in 0:(maxLag-1)){
 # for 3 out of 9 cities
 summary(city_outcome_covar)
 
-# 1j Save merged mi + covariates dataset
+# 1n Save merged mi + covariates dataset
 city_outcome_covar %>% write_fst(paste0(data_path_external, 'mi_covars_city.fst'))
 
-# 1k Clear environment to preserve memory for zipcode level work
+# 1o Clear environment to preserve memory for zipcode level work
 rm(city_outcome_covar, city_outcome_pm, maxLag, pm_city)
 
 

@@ -1,7 +1,7 @@
 # Create NO2 Hourly Contourplot
 # NO2-MI Analysis
 # Jenni A. Shearston 
-# Updated 01/27/2023
+# Updated 06/15/2023
 
 ####***********************
 #### Table of Contents #### 
@@ -82,8 +82,18 @@ cc <- cc %>%
 #    there are 0 observations of this
 cc <- cc %>%
   mutate(count_no2 = ifelse(is.na(count_no2), 0, count_no2))
+
+# 1e Create function to add commas to Count of Hours legend
+comma_format <- function(x){
+  scales::comma(x, digits = 0)
+}
+
+# 1f Create function to add ':00' to the end of x-axis labels
+time_format <- function(x){
+  paste0(x, ":00")
+}
          
-# 1e Create and save plot
+# 1f Create and save plot
 tiff(paste0(output_path, 'Plots/', 'fig2_no2_contourplot.tif'),
      units = "in", width = 12, height = 8, res = 300)
 
@@ -91,10 +101,12 @@ cc %>%
   ggplot(aes(x = hour, y = no2_lag00)) +
   stat_contour_filled(aes(z = count_no2)) +
   scale_fill_distiller(super = metR::ScaleDiscretised, palette = "RdYlBu",
-                       breaks = c(0, 400, 800, 1200, 1600, 2000, 2400, 2800)) +
+                       breaks = c(0, 400, 800, 1200, 1600, 2000, 2400, 2800),
+                       labels = comma_format) +
   labs(fill = 'Count of \n Hours') +
   xlab("Hour of Day") + ylab(expression('NO'[2]*' (ppb)')) +
-  scale_x_continuous(limits = c(0, 23)) +
+  scale_x_continuous(limits = c(0, 23),
+                     labels = time_format) +
   scale_y_continuous(limits = c(0, 60),
                      breaks = seq(0, 60, 10)) +
   theme_bw(base_size = 20) +
